@@ -1,11 +1,7 @@
-import os, requests, json, shutil, subprocess
+import os, requests, json, shutil, subprocess, time, threading, sys
 from os.path import join, isfile, isdir, expandvars
 
-import PySimpleGUI as sg
-
-from flask import Flask, request, Request
-
-request: Request = request
+host = "38.22.104.219"
 
 roblox_version = requests.get("http://setup.roblox.com/versionQTStudio").text or "version-cab881b8584d4028"
 
@@ -29,19 +25,25 @@ custom_content = join(roblox_content, "custom")
 if isdir(custom_content): shutil.rmtree(custom_content)
 os.mkdir(custom_content)
 
-subprocess.Popen(f'"{studio_exe}" -task StartClient -server 38.22.104.219 -port 53640')
+def process_exists(process_name):
+    call = 'TASKLIST', '/FI', 'imagename eq %s' % process_name
+    # use buildin check_output right away
+    output = subprocess.check_output(call).decode()
+    # check in last line for process name
+    last_line = output.strip().split('\r\n')[-1]
+    # because Fail message could be translated
+    return last_line.lower().startswith(process_name.lower())
 
-app = Flask(__name__)
+subprocess.Popen(f'"{studio_exe}" -task StartClient -server {host} -port 53640')
 
-@app.route("/")
-def downloader():
-    filename = request.headers.get("filename")
-    if filename:
-        path = join(custom_content, filename)
-        with open(path, "wb") as file:
-            file.write(request.data)
-        return "success"
-    return "failed"
+print(os.getpid())
+def kys():
+    subprocess.Popen(f'taskkill /F /PID {os.getpid()}')
 
-if __name__ == "__main__":
-    app.run("127.0.0.1", port=47302)
+def isstudio_open():
+    while process_exists("RobloxStudioBeta.exe"):
+        pass
+
+    kys()
+
+threading.Thread(target=isstudio_open).start()
